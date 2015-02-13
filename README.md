@@ -23,9 +23,9 @@ Quick script written in Python that uses various online sources to scrape artwor
 
 If you haven't done so, please update ES before running this script.
 
-For image resizing to work, you need to install PIL:
+For image resizing to work, you need to install Pillow:
 ```
-sudo apt-get install python-imaging
+sudo pip install Pillow
 ```
 
 Usage
@@ -33,12 +33,38 @@ Usage
 * Open your systems config file ($HOME/.emulationstation/es_systems.cfg) and append the corresponding [platform ID](#platform-list) to each system:
 
 ```
-NAME=NES
-DESCNAME=Nintendo Entertainment System
-PATH=~/ROMS/NES/
-EXTENSION=.nes
-COMMAND=retroarch -L /path/to/core %ROM%
-PLATFORMID=7
+<systemList>
+    <!-- Here's an example system to get you started. -->
+    <system>
+        <!-- A short name, used internally. -->
+        <name>snes</name>
+
+        <!-- A "pretty" name, displayed in the menus and such. This one is optional. -->
+        <fullname>Super Nintendo Entertainment System</fullname>
+
+        <!-- The path to start searching for ROMs in. '~' will be expanded to $HOME or %HOMEPATH%, depending on platform.
+        All subdirectories (and non-recursive links) will be included. -->
+        <path>~/ROMS/SNES</path>
+
+        <!-- A list of extensions to search for, delimited by any of the whitespace characters (", \r\n\t").
+        You MUST include the period at the start of the extension! It's also case sensitive. -->
+        <extension>.smc .sfc .SMC .SFC</extension>
+
+        <!-- The shell command executed when a game is selected. A few special tags are replaced if found in a command, like %ROM% (see below). -->
+        <command>snesemulator %ROM%</command>
+        <!-- This example would run the bash command "snesemulator /home/user/roms/snes/Super\ Mario\ World.sfc". -->
+
+        <!-- The platform(s) to use when scraping. You can see the full list of accepted platforms in src/PlatformIds.cpp.
+        It's case sensitive, but everything is lowercase. This tag is optional.
+        You can use multiple platforms too, delimited with any of the whitespace characters (", \r\n\t"), eg: "genesis, megadrive" -->
+        <platform>snes</platform>
+
+        <!-- The theme to load from the current theme set. See THEMES.md for more information.
+        This tag is optional; if not set, it will use the value of <name>. -->
+        <theme>snes</theme>
+        <platformid>6</platformid>
+    </system>
+</systemList>
 ```
 
 * Run the script.

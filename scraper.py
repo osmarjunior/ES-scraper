@@ -1,8 +1,9 @@
 #!/usr/bin/env python
-import os, imghdr, urllib, urllib2, sys, Image, argparse, zlib, unicodedata, re
+import os, imghdr, urllib, urllib2, sys, argparse, zlib, unicodedata, re, time
 import difflib
 from xml.etree import ElementTree as ET
 from xml.etree.ElementTree import Element, SubElement
+from PIL import Image
 
 SCUMMVM = False
 
@@ -27,26 +28,20 @@ def fixExtension(file):
     return newfile
 
 def readConfig(file):
-    lines=config.read().splitlines()
     systems=[]
-    for line in lines:
-        if not line.strip() or line[0]=='#':
+    config = ET.parse(file)
+    configroot = config.getroot()
+    for child in configroot:
+        name = child.find('name').text
+        path = child.find('path').text
+        ext = child.find('extension').text
+        pid = child.find('platformid').text
+        if not pid:
             continue
         else:
-            if "NAME=" in line:
-                name=line.split('=')[1]
-            if "PATH=" in line:
-                path=line.split('=')[1]
-            elif "EXTENSION" in line:
-                ext=line.split('=')[1]
-            elif "PLATFORMID" in line:
-                pid=line.split('=')[1]
-                if not pid:
-                    continue
-                else:
-                    system=(name,path,ext,pid)
-                    systems.append(system)
-    config.close()
+            system=(name,path,ext,pid)
+            systems.append(system)
+            print name, path, ext, pid
     return systems
 
 def crc(fileName):
@@ -212,6 +207,18 @@ def getRelDate(nodes):
     else:
         return getText(nodes.find("ReleaseDate"))
 
+def getRating(nodes):
+    if args.crc:
+        return None
+    else:
+        return getText(nodes.find("Rating"))
+
+def getPlayers(nodes):
+    if args.crc:
+        return None
+    else:
+        return getText(nodes.find("Players"))
+
 def getPublisher(nodes):
     if args.crc:
         return None
@@ -267,6 +274,17 @@ def chooseResult(nodes):
         return int(raw_input("Select a result (or press Enter to skip): "))
     else:
         return 0
+        
+def ToXMLDate(d):
+	if d is not None:
+		if len(d) == 10 :
+			return time.strftime('%Y%m%dT%H%M%S', time.strptime(d, '%m/%d/%Y'))
+		elif len(d) == 4:
+			return time.strftime('%Y%m%dT%H%M%S', time.strptime('01/01/' + d, '%m/%d/%Y'))
+		else:
+			return None
+	else:
+		return None
 		
 		
 def autoChooseBestResult(nodes,t):
@@ -358,10 +376,12 @@ def scanFiles(SystemInfo):
                     str_title=getTitle(result)
                     str_des=getDescription(result)
                     str_img=getImage(result)
-                    str_rd=getRelDate(result)
+                    str_rating=getRating(result)
+                    str_rd=ToXMLDate(getRelDate(result))
                     str_pub=getPublisher(result)
                     str_dev=getDeveloper(result)
                     lst_genres=getGenres(result)
+                    str_players=getPlayers(result)
     
                     if str_title is not None:
                         game = SubElement(gamelist, 'game')
@@ -370,9 +390,11 @@ def scanFiles(SystemInfo):
                         desc = SubElement(game, 'desc')
                         image = SubElement(game, 'image')
                         releasedate = SubElement(game, 'releasedate')
+                        rating = SubElement(game, 'rating')
                         publisher=SubElement(game, 'publisher')
                         developer=SubElement(game, 'developer')
-                        genres=SubElement(game, 'genres')
+                        #genres=SubElement(game, 'genres')
+                        players=SubElement(game, 'players')
     
                         path.text=filepath
                         name.text=str_title
@@ -399,7 +421,15 @@ def scanFiles(SystemInfo):
                             except:
                                 print "Image resize error"
     
+                    	
+                    if str_rating is not None:
+                        flt_rating = float(str_rating) / 10.0
+                        rating.text = "%.6f" % flt_rating
+                    else:
+                        rating.text = "0.000000"
+    
                     if str_rd is not None:
+                        
                         releasedate.text=str_rd
     
                     if str_pub is not None:
@@ -407,11 +437,15 @@ def scanFiles(SystemInfo):
     
                     if str_dev is not None:
                         developer.text=str_dev
+
+                    if str_players is not None:
+                        players.text=str_players
     
                     if lst_genres is not None:
                         for genre in lst_genres:
-                            newgenre = SubElement(genres, 'genre')
+                            newgenre = SubElement(game, 'genre')
                             newgenre.text=genre.strip()
+                            break;
                 except KeyboardInterrupt:
                     print "Ctrl+C detected. Closing work now..."
                 except Exception as e:
